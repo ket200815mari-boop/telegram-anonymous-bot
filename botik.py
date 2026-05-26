@@ -27,7 +27,7 @@ def run_flask():
 # =========================
 
 BOT_TOKEN = os.getenv("8616847902:AAG-qSRjj1dtGsoHzM3WujL4LfisC0hHAD8")
-OWNER_ID = int(os.getenv("1413372081"))
+OWNER_ID = int(os.getenv("OWNER_ID"))
 
 bot = Bot(
     token=BOT_TOKEN,
