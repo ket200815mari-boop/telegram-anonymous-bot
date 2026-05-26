@@ -9,7 +9,7 @@ from aiogram.client.default import DefaultBotProperties
 # =========================
 
 BOT_TOKEN = "8616847902:AAG-qSRjj1dtGsoHzM3WujL4LfisC0hHAD8"
-OWNER_ID = 7980341819 # Telegram ID владельца
+OWNER_ID = 1413372081 # Telegram ID владельца
 
 # =========================
 
@@ -33,8 +33,8 @@ message_links = {}
 async def start(message: Message):
     await message.answer(
         "✉️ Привет.\n\n"
-        "Отправь сюда своё сообщение, предложение или мнение.\n"
-        "Оно будет анонимно доставлено владельцу бота."
+        "Оставьте здесь свой запрос .\n"
+        "Администрация свяжется с вами в ближайшее время ."
     )
 
 
