@@ -1,17 +1,33 @@
 import asyncio
+import os
+from threading import Thread
+
+from flask import Flask
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
 # =========================
-# НАСТРОЙКИ
+# FLASK
 # =========================
 
-BOT_TOKEN = "8616847902:AAG-qSRjj1dtGsoHzM3WujL4LfisC0hHAD8"
-OWNER_ID = 1413372081 # Telegram ID владельца
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is alive"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 # =========================
+# TELEGRAM BOT
+# =========================
+
+BOT_TOKEN = os.getenv("8616847902:AAG-qSRjj1dtGsoHzM3WujL4LfisC0hHAD8")
+OWNER_ID = int(os.getenv("1413372081"))
 
 bot = Bot(
     token=BOT_TOKEN,
@@ -20,105 +36,57 @@ bot = Bot(
 
 dp = Dispatcher()
 
-# Хранилище соответствия сообщений
-# message_id владельца -> user_id отправителя
 message_links = {}
-
-
-# =========================
-# СТАРТ
-# =========================
 
 @dp.message(F.text == "/start")
 async def start(message: Message):
     await message.answer(
-        "✉️ Привет.\n\n"
-        "Оставьте здесь свой запрос .\n"
-        "Администрация свяжется с вами в ближайшее время ."
+        "✉️ Оставьте свой запрос здесь. Администрация свяжется с вами в ближайшее время."
     )
-
-
-# =========================
-# СООБЩЕНИЯ ОТ ПОЛЬЗОВАТЕЛЕЙ
-# =========================
 
 @dp.message(F.from_user.id != OWNER_ID)
 async def anonymous_message(message: Message):
 
-    sender = message.from_user
-
-    text = (
-        "📩 <b>Новое анонимное сообщение</b>\n\n"
-        f"👤 ID пользователя: <code>{sender.id}</code>\n\n"
+    sent = await bot.send_message(
+        OWNER_ID,
+        f"📩 Новое сообщение\n\n"
+        f"ID: {message.from_user.id}\n\n"
+        f"{message.text or 'Медиа'}"
     )
 
-    if message.text:
-        text += f"{message.text}"
+    message_links[sent.message_id] = message.from_user.id
 
-        sent = await bot.send_message(
-            OWNER_ID,
-            text
-        )
-
-    else:
-        sent = await bot.forward_message(
-            OWNER_ID,
-            message.chat.id,
-            message.message_id
-        )
-
-    # Запоминаем кто отправил сообщение
-    message_links[sent.message_id] = sender.id
-
-    await message.answer("✅ Сообщение отправлено анонимно.")
-
-
-# =========================
-# ОТВЕТ ВЛАДЕЛЬЦА
-# =========================
+    await message.answer("✅ Ваш ответ записан.")
 
 @dp.message(F.from_user.id == OWNER_ID)
 async def owner_reply(message: Message):
 
-    # Проверяем, ответил ли владелец реплаем
     if not message.reply_to_message:
         return
 
-    replied_message_id = message.reply_to_message.message_id
+    replied_id = message.reply_to_message.message_id
 
-    # Проверяем есть ли такой пользователь
-    if replied_message_id not in message_links:
+    if replied_id not in message_links:
         return
 
-    user_id = message_links[replied_message_id]
+    user_id = message_links[replied_id]
 
-    try:
-        if message.text:
-            await bot.send_message(
-                user_id,
-                f"💬 <b>Ответ владельца:</b>\n\n{message.text}"
-            )
+    await bot.send_message(
+        user_id,
+        f"💬 Ответ владельца:\n\n{message.text}"
+    )
 
-        else:
-            await bot.copy_message(
-                user_id,
-                OWNER_ID,
-                message.message_id
-            )
-
-        await message.reply("✅ Ответ отправлен.")
-
-    except Exception as e:
-        await message.reply(f"Ошибка: {e}")
-
-
-# =========================
-# ЗАПУСК
-# =========================
-
-async def main():
-    print("Бот запущен")
+async def start_bot():
     await dp.start_polling(bot)
 
+# =========================
+# START
+# =========================
+
 if __name__ == "__main__":
-    asyncio.run(main())
+
+    flask_thread = Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    asyncio.run(start_bot())
